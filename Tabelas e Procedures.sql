@@ -345,10 +345,11 @@ create function buyPass(_nome varchar(255), _evento varchar(255), _setor varchar
 
 DECLARE done INT DEFAULT 0;
 DECLARE usuario_id, compra_id, ingresso_id INT;
-DECLARE contador int default 1;
+DECLARE contador int default 0;
 DECLARE valor, valor_parcela FLOAT;
 DECLARE total_c FLOAT DEFAULT 0;
 DECLARE _evento_cap varchar(255) default _evento;
+DECLARE _nome_cap varchar(255) default _nome;
 DECLARE registra_venda_ingressos CURSOR FOR (SELECT i.idIngresso, i.valor from Ingresso as i inner join Setor as s where i.idSetor = (SELECT idSetor from Setor s where s.nome = _setor) and i.idEvento in(select e.idEvento from Evento as e where (e.nome = _evento) and (i.status = 1)) LIMIT 2);
 DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
 
@@ -402,17 +403,16 @@ DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
   					IF (_forma_pagamento = "a vista") then
   							insert into Pagamento (idForma_Pagamento, idCompra, `valor`, vencimento) values (@fp_id,compra_id, valor_parcela, CURRENT_DATE());
   					ELSE
-  						while contador <= @vezes DO
+  						while contador < @vezes DO
   							insert into Pagamento (idForma_Pagamento, idCompra, `valor`, vencimento) values (@fp_id,compra_id, valor_parcela, date_add(CURRENT_DATE(), interval contador month));
   							SET contador = contador + 1;
   						END WHILE ;
   					end if;
   					
-		return 'sucesso';
+		return concat('Sucesso! Comprador: ',_nome_cap,'.\nEvento: ',_evento_cap,'.\nSetor: ', _setor,'.\nForma de Pagamento: ', _forma_pagamento, '.\nParcelas: ',_parcelas);
 end//
 DELIMITER ;
 
 
 SET @teste = buyPass("Bruno Serra Barboza", "Lollapalooza", "Pista", 1, "A vista", 1);
 select @teste;
-
