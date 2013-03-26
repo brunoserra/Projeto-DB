@@ -341,7 +341,7 @@ DELIMITER ;
 -- compraIngresso("Bruno Serra","Lollapalooza","Pista","2","Cartao de credito","3x");
 
 DELIMITER //
-create function buyPass(_nome varchar(255), _evento varchar(255), _setor varchar(255), _quantidade int, _forma_pagamento varchar(255), _parcelas int) returns varchar(255) begin
+create function buyPass(_nome varchar(255), _evento varchar(255), _setor varchar(255), _quantidade int, _forma_pagamento varchar(255), _parcelas int, _tipo int) returns varchar(255) begin
 
 DECLARE done INT DEFAULT 0;
 DECLARE usuario_id, compra_id, ingresso_id INT;
@@ -372,6 +372,10 @@ DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
 	SET usuario_id = (select idUsuario from Usuario where nome = _nome LIMIT 1);
 	
 	IF ((_quantidade>2) or (_quantidade <1)) THEN RETURN 'Limite de 2 ingressos por compra !'; END IF;
+
+
+	if(_tipo = 0) then
+	-- executa compra porque nao é reserva
 	
 	SET @fp_id  = 0;
 	SET @vezes = 1;
@@ -388,12 +392,14 @@ DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
 		RETURN CONCAT('Quantidade de parcelas inválida. Só é possível dividir em ',@vezes,'x no ', _forma_pagamento, '.'); 
 	END IF;
 	
+	end if; -- fim if(_tipo
+	
 	select count(*) as qtd into @disponiveis from Ingresso where `status` = 1 and idSetor = (SELECT idSetor from Setor s where s.nome = _setor);
 	IF (@disponiveis < _quantidade) THEN 
 		RETURN CONCAT(@disponiveis,' ingresso(s) disponiveis. Evento: ',_evento_cap,'. Setor: ',_setor); 
 	END IF;
 	
-	insert into Compra (idUsuario,`data`,qtd) values (usuario_id, CURRENT_DATE, _quantidade);
+	insert into Compra (idUsuario,`data`,qtd, tipo) values (usuario_id, CURRENT_DATE, _quantidade, _tipo);
 	SET compra_id = LAST_INSERT_ID();
 
     				-- a partir da compra registrada, cria associação: compra x ingresso
@@ -414,6 +420,9 @@ DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
   					CLOSE registra_venda_ingressos;
 		
   			     	UPDATE Compra set `total`=total_c where idCompra = compra_id;
+  			     	
+  			     	-- se for tipo compra, continua o pagamento
+  			     	if(_tipo=0)then
   					SET valor_parcela = total_c / @vezes;
   					
   					IF (_forma_pagamento = "a vista") then
@@ -424,15 +433,17 @@ DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
   							SET contador = contador + 1;
   						END WHILE ;
   					end if;
-  					
-  					
+  					end if; -- fim if(_tipo
+  		if(_tipo=0)then
   		return concat('Sucesso! Comprador: ',_nome_cap,'.\nEvento: ',_evento_cap,'.\nSetor: ', _setor,'.\nForma de Pagamento: ', _forma_pagamento, '.\nParcelas: ',_parcelas);
-
+	else
+		return concat('Reservado com sucesso! Até 24 p/ finalizar.\nComprador: ',_nome_cap,'.\nEvento: ',_evento_cap,'.\nSetor: ', _setor,'.\nForma de Pagamento: ', _forma_pagamento, '.\nParcelas: ',_parcelas);
+		end if;
 end//
 DELIMITER ;
 
 
-SET @teste = buyPass("Bruno Serra Barboza", "Lollapalooza", "Pista",  1, "a vista", 1);
+SET @teste = buyPass("Bruno Serra Barboza", "Planeta Terra 2014", "Pista",  1, "a vista", 1, 1);
 select @teste;
 
 
@@ -523,4 +534,21 @@ DELIMITER ;
 
 SET @var = newEvent("Planeta Terra 2015", "Jockey Sao Paulo", "O maior evento hipster do brasil", "25/02/2013", "Festival", "Maria, Paula, Marcos, Bruno Serra");
 select @var;
+
+
+SET GLOBAL event_scheduler = ON;
+
+DELIMITER //
+CREATE EVENT remove_reservas
+ON SCHEDULE EVERY 1 DAY
+DO BEGIN
+Update Compra c inner join Compra_has_ingresso ci on ci.idCompra = c.idCompra inner join Ingresso i on i.idIngresso = ci.idIngresso set i.status = 1 where (c.data < current_date()) and  (c.tipo=1);
+delete from Compra  where (`data` < current_date()) and tipo = 1;
+
+end//
+
+DELIMITER ;
+
+
+
 
