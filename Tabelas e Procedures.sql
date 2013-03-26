@@ -358,6 +358,17 @@ DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
 	SET _setor							= LOWER(_setor);
 	SET _forma_pagamento		= LOWER(_forma_pagamento);
 	
+		if(((_nome = '') or (_nome = null)) or ((_evento = '') or (_evento = null)) or ((_setor = '') or (_setor = null)) or ((_quantidade = '') or (_quantidade = null)) or ((_forma_pagamento = '') or (_forma_pagamento = null)) or ((_parcelas = '') or (_parcelas = null))) then
+		return 'Por Favor, preencha os valores corretamente.';
+		end if;
+		
+	SET @data_evento = 0;
+	select `data` into @data_evento from Evento where lower(nome) = _evento;
+	
+	if(@data_evento < current_date)then
+		return 'Evento já aconteceu';
+	end if;
+	
 	SET usuario_id = (select idUsuario from Usuario where nome = _nome LIMIT 1);
 	
 	IF ((_quantidade>2) or (_quantidade <1)) THEN RETURN 'Limite de 2 ingressos por compra !'; END IF;
@@ -414,13 +425,102 @@ DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
   						END WHILE ;
   					end if;
   					
-		-- return concat('Sucesso! Comprador: ',_nome_cap,'.\nEvento: ',_evento_cap,'.\nSetor: ', _setor,'.\nForma de Pagamento: ', _forma_pagamento, '.\nParcelas: ',_parcelas);
-		
-		return concat('Sucesso! Comprador: ',_nome_cap,'.\nEvento: ',_evento_cap,'.\nSetor: ', _setor,'.\nForma de Pagamento: ', _forma_pagamento, '.\nParcelas: ',@fp_id);
+  					
+  		return concat('Sucesso! Comprador: ',_nome_cap,'.\nEvento: ',_evento_cap,'.\nSetor: ', _setor,'.\nForma de Pagamento: ', _forma_pagamento, '.\nParcelas: ',_parcelas);
 
 end//
 DELIMITER ;
 
 
-SET @teste = buyPass("Bruno Serra Barboza", "Lollapalooza", "Pista", 1, "Boleto", 1);
+SET @teste = buyPass("Bruno Serra Barboza", "Lollapalooza", "Pista",  1, "a vista", 1);
 select @teste;
+
+
+
+DELIMITER //
+create function newEvent(_nome varchar(255), _ambiente varchar(255), _descricao varchar(255), _data varchar(255), _categoria varchar(255), _integrantes varchar(255)) returns varchar(255) begin
+
+	DECLARE _nome_cap varchar(255) default _nome;
+	DECLARE evento_id, integrante_id int;
+	DECLARE done, controle, controle_2, controle_3 int default 0;
+	DECLARE integrante_nome varchar(255);
+	DECLARE registra_integrantes_evento CURSOR FOR (SELECT inte.idIntegrantes, inte.nome from Integrantes inte);
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+	SET _nome						    = LOWER(_nome);
+	SET _ambiente						= LOWER(_ambiente);
+	SET _categoria						= LOWER(_categoria);
+	SET _integrantes		            = LOWER(_integrantes);
+	SET _data 								= date_format(str_to_date(_data, '%d/%m/%Y'), '%Y-%m-%d'); 
+	
+	if(((_nome = '') or (_nome = null)) or ((_ambiente = '') or (_ambiente = null)) or ((_descricao = '') or (_descricao = null)) or ((_categoria = '') or (_categoria = null)) or ((_integrantes = '') or (_integrantes = null)) or ((_data = '') or (_data = null))) then
+		return 'Por Favor, preencha os valores corretamente.';
+		end if;
+	
+	SET @cat_id = 0;
+	select idCategoria into @cat_id from categoria where nome = _categoria;
+	
+	if(@cat_id = 0)then
+		return 'Categoria de evento invalida';
+	end if;
+	
+	SET @ambiente_id = 0;
+	select idAmbiente into @ambiente_id from Ambiente where nome = _ambiente;
+	
+	if(@ambiente_id = 0)then
+		return 'Ambiente de evento invalida';
+	end if;
+	
+	if(_data < current_date ) then
+		return 'Só é possive cadastrar eventos de hoje em diante!';
+	end if;
+
+	SET @check_name = 1;
+	select count(*) into @check_name from Evento where nome = _nome;
+	
+	if(@check_name = 1)then
+		return concat('Já existe um evento com o nome ',_nome_cap,'. Por favor, escolha outro.');
+	end if;
+	
+		SET controle_2 = LENGTH(_integrantes) - LENGTH(REPLACE(_integrantes, ',', ''))+1;
+	
+				-- a partir do evento registrado, cria associação: evento x integrantes
+  					OPEN registra_integrantes_evento;
+  						REPEAT
+    						FETCH registra_integrantes_evento INTO integrante_id, integrante_nome;
+    							IF NOT done THEN
+												if(LOCATE(integrante_nome, _integrantes)) then
+													set controle_3 = controle_3 +1;
+												end if;
+    							END IF;
+  						UNTIL done END REPEAT;
+  					CLOSE registra_integrantes_evento;
+  					
+  					if(controle_2 != controle_3) then
+							return 'Alguns integrantes não foram encontrados';
+					end if;
+	
+	insert into Evento (idAmbiente, idCategoria, descricao, `data`, nome) values (@ambiente_id, @cat_id, _descricao, _data, _nome_cap);
+	SET evento_id = LAST_INSERT_ID();
+	
+	SET done = 0;
+	
+			-- a partir do evento registrado, cria associação: evento x integrantes
+  					OPEN registra_integrantes_evento;
+  						REPEAT
+    						FETCH registra_integrantes_evento INTO integrante_id, integrante_nome;
+    							IF NOT done THEN
+    								 if(LOCATE(integrante_nome, _integrantes)>0) then
+      								 	INSERT INTO Integrantes_has_Evento (Integrantes_idIntegrantes,Evento_idEvento) VALUES (integrante_id, evento_id);
+									 END IF;
+    							END IF;
+  						UNTIL done END REPEAT;
+  					CLOSE registra_integrantes_evento;
+
+  						return concat(_nome_cap,' cadastrado com sucesso! Use a função newPass() para atribuir ingressos ao evento.');
+  					end//
+DELIMITER ;
+
+SET @var = newEvent("Planeta Terra 2015", "Jockey Sao Paulo", "O maior evento hipster do brasil", "25/02/2013", "Festival", "Maria, Paula, Marcos, Bruno Serra");
+select @var;
+
