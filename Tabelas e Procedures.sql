@@ -552,3 +552,9 @@ DELIMITER ;
 
 
 
+DELIMITER //
+CREATE PROCEDURE ingressosDisponiveis()
+BEGIN
+	select e.nome as Nome, count(*) as "Qtd. Disponivel" from Ingresso i inner join Evento e on e.idEvento = i.idEvento where (e.data >= current_date())  and (i.status = 1) group by e.nome;
+END//
+DELIMITER ;
