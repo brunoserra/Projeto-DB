@@ -362,7 +362,12 @@ DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
 	
 	IF ((_quantidade>2) or (_quantidade <1)) THEN RETURN 'Limite de 2 ingressos por compra !'; END IF;
 	
-	SELECT fp.idForma_Pagamento, fp.vezes into @fp_id, @vezes from Forma_Pagamento fp where fp.nome = _forma_pagamento;
+	SET @fp_id  = 0;
+	SET @vezes = 1;
+
+	SELECT fp.idForma_Pagamento, fp.vezes into @fp_id, @vezes from Forma_Pagamento fp where LOWER(fp.nome) = _forma_pagamento;
+	
+	IF(@fp_id=0) then return 'Forma de pagamento inválida.'; end if;
 	
 	if(((_parcelas<0) or (_parcelas>1)) and (_forma_pagamento = 'a vista')) then 
 		return 'Por favor, verifique a forma de pagamento !'; 
@@ -409,10 +414,13 @@ DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
   						END WHILE ;
   					end if;
   					
-		return concat('Sucesso! Comprador: ',_nome_cap,'.\nEvento: ',_evento_cap,'.\nSetor: ', _setor,'.\nForma de Pagamento: ', _forma_pagamento, '.\nParcelas: ',_parcelas);
+		-- return concat('Sucesso! Comprador: ',_nome_cap,'.\nEvento: ',_evento_cap,'.\nSetor: ', _setor,'.\nForma de Pagamento: ', _forma_pagamento, '.\nParcelas: ',_parcelas);
+		
+		return concat('Sucesso! Comprador: ',_nome_cap,'.\nEvento: ',_evento_cap,'.\nSetor: ', _setor,'.\nForma de Pagamento: ', _forma_pagamento, '.\nParcelas: ',@fp_id);
+
 end//
 DELIMITER ;
 
 
-SET @teste = buyPass("Bruno Serra Barboza", "Lollapalooza", "Pista", 1, "A vista", 1);
+SET @teste = buyPass("Bruno Serra Barboza", "Lollapalooza", "Pista", 1, "Boleto", 1);
 select @teste;
