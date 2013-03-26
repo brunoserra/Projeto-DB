@@ -603,5 +603,103 @@ DELIMITER ;
 
 -- call buysPerUser('Nilo Junior');
 
+DELIMITER //
+CREATE PROCEDURE lucrePerEvent(IN _nome varchar(255))
+BEGIN
+if((_nome = null) or (_nome = '')) then
+select e.nome, sum(c.total) as "Arrecadado R$"  from Evento e inner join Ingresso i on i.idEvento = e.idEvento inner join Compra_has_ingresso ci on ci.idIngresso = i.idIngresso inner join Compra c on c.idCompra = ci.idCompra  where (c.tipo=0) group by e.nome;
+else
+	SET @check = 0;
+	select idEvento into @check from Evento where nome = _nome;
+	if(@check >0) then
+	select e.nome, sum(c.total) as "Arrecadado R$"  from Evento e inner join Ingresso i on i.idEvento = e.idEvento inner join Compra_has_ingresso ci on ci.idIngresso = i.idIngresso inner join Compra c on c.idCompra = ci.idCompra where (c.tipo=0) and (e.nome = _nome) group by e.nome;
+	else 
+	select 'Evento não existe' as 'Atenção';
+	end if;
+end if;
+END//
+DELIMITER ;
+
+-- call lucrePerEvent("planeta terra 2014");
+
+DELIMITER //
+CREATE PROCEDURE membersPerEvent(IN _nome varchar(255))
+BEGIN
+if((_nome = null) or (_nome = '')) then
+select e.nome, count(*) as "Qtd. Integrantes" from Evento e inner join Integrantes_has_Evento ie on e.idEvento = ie.Evento_idEvento group by e.nome;
+else
+	SET @check = 0;
+	select idEvento into @check from Evento where nome = _nome;
+	if(@check >0) then
+	select i.nome as 'Integrantes do evento' from Evento e inner join Integrantes_has_Evento ie on e.idEvento = ie.Evento_idEvento inner join Integrantes i  on i.idIntegrantes = Integrantes_idIntegrantes where e.nome = _nome;
+		else 
+	select 'Evento não existe' as 'Atenção';
+	end if;
+end if;
+END//
+DELIMITER ;
+
+-- call membersPerEvent("");
+
+DELIMITER //
+CREATE PROCEDURE formPay()
+BEGIN
+select fp.nome as "Forma de Pagamento", count(*) as "Qtd." from Pagamento p inner join Forma_Pagamento fp on p.idForma_Pagamento = fp.idForma_Pagamento group by fp.nome;
+END//
+DELIMITER ;
+
+-- call formPay()
+
+
+DELIMITER //
+CREATE PROCEDURE toReceive()
+BEGIN
+select TRUNCATE(SUM(valor),2) as "Total a Receber" from Pagamento where vencimento > current_date();
+END//
+DELIMITER ;
+
+-- call toReceive()
+
+DELIMITER //
+CREATE PROCEDURE toReceiveFromUser(IN _nome varchar(255))
+BEGIN
+SET @check = 0;
+	select idUsuario into @check from Usuario where nome = _nome;
+	if(@check >0) then
+select u.nome, sum(p.valor) as "A Receber" from Usuario u inner join Compra c on c.idUsuario = u.idUsuario inner join Pagamento p on p.idCompra = c.idCompra where (vencimento > current_date()) and (u.nome = "Bruno Serra Barboza") group by u.nome;
+else 
+	select 'Usuario não existe' as 'Atenção';
+end if;
+END//
+DELIMITER ;
+
+-- call toReceiveFromUser('Bruno Serra Barboza')
+
+
+DELIMITER //
+CREATE PROCEDURE inadimplente()
+BEGIN
+select u.nome as Inadimplente, p.valor as "Valor Parcela", DATE_FORMAT(p.vencimento,"%d/%m/%Y") as 'Venceu em', e.nome as Evento from Pagamento p inner join Compra c on p.idCompra = c.idCompra inner join Usuario u on u.idUsuario = c.idUsuario inner join Compra_has_ingresso ci on c.idCompra = ci.idCompra inner join Ingresso i on i.idIngresso = ci.idIngresso inner join Evento e on e.idEvento = i.idEvento where (vencimento < current_date()) and (p.status =0);
+END//
+DELIMITER ;
+
+-- call inadimplente()
+
+
+
+DELIMITER //
+CREATE PROCEDURE eventsPerPlace(IN _nome varchar(255))
+BEGIN
+SET @check = 0;
+	select idAmbiente into @check from Ambiente where nome = _nome;
+	if(@check >0) then
+select e.nome as 'Eventos' from Ambiente a inner join Evento e on e.idAmbiente = a.idAmbiente where a.nome = _nome;
+else 
+	select 'Ambiente não existe' as 'Atenção';
+end if;
+END//
+DELIMITER ;
+
+-- call inadimplente()
 
 
