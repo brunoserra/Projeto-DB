@@ -550,11 +550,26 @@ end//
 DELIMITER ;
 
 
-
-
 DELIMITER //
-CREATE PROCEDURE ingressosDisponiveis()
+CREATE PROCEDURE ingressosDisponiveis(IN _evento varchar(255))
 BEGIN
-	select e.nome as Nome, count(*) as "Qtd. Disponivel" from Ingresso i inner join Evento e on e.idEvento = i.idEvento where (e.data >= current_date())  and (i.status = 1) group by e.nome;
+	if((_evento = NULL) or (_evento = '')) then
+		select e.nome as Nome, count(*) as "Qtd. Disponivel" from Ingresso i inner join Evento e on e.idEvento = i.idEvento where (e.data >= current_date())  and (i.status = 1) group by e.nome;
+	else 
+		select e.nome as Nome, count(*) as "Qtd. Disponivel" from Ingresso i inner join Evento e on e.idEvento = i.idEvento where (e.data >= current_date())  and (i.status = 1) and (e.nome = _evento)group by e.nome;
+	end if;
 END//
 DELIMITER ;
+
+-- call ingressosDisponiveis("")
+
+DELIMITER //
+CREATE PROCEDURE ingressosReservados()
+BEGIN
+select u.nome as "Solicitante", e.nome as "Evento", DATE_FORMAT(c.data,"%d/%m/%Y") as "Dia da reserva",  c.qtd as "Qtd." from Compra c inner join Compra_has_ingresso ci on ci.idCompra = c.idCompra inner join Ingresso i on ci.idIngresso = i.idIngresso inner join Evento e on e.idEvento = i.idEvento inner join Usuario u on u.idUsuario = c.idUsuario where c.tipo = 1;
+END//
+DELIMITER ;
+
+
+
+
