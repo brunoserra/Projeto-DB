@@ -572,4 +572,36 @@ DELIMITER ;
 
 
 
+DELIMITER //
+CREATE PROCEDURE listUsers(IN _nome varchar(255))
+BEGIN
+if((_nome = null) or (_nome = '')) then
+	select nome as Nome, email as Email, cpf as CPF from Usuario;
+else
+	select nome as Nome, email as Email, cpf as CPF from Usuario where nome LIKE CONCAT('%',_nome,'%');
+end if;
+END//
+DELIMITER ;
+
+
+DELIMITER //
+CREATE PROCEDURE buysPerUser(IN _nome varchar(255))
+BEGIN
+if((_nome = null) or (_nome = '')) then
+	select u.nome as Nome, count(*) as 'Total de compras', sum(c.total) as 'Valor gasto R$' from Usuario u inner join Compra c on u.idUsuario = c.idUsuario where c.tipo = 0 group by u.nome ;
+else
+	SET @check = 0;
+	select idUsuario into @check from Usuario where nome = _nome;
+	if(@check >0) then
+	select u.nome as Nome, count(*) as 'Total de compras', sum(c.total) as 'Valor gasto R$' from Usuario u inner join Compra c on u.idUsuario = c.idUsuario where (c.tipo = 0) and (u.nome = _nome) group by u.nome ;
+	else 
+	select 'Usuário não existe' as 'Atenção';
+	end if;
+end if;
+END//
+DELIMITER ;
+
+-- call buysPerUser('Nilo Junior');
+
+
 
