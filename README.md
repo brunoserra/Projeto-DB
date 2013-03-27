@@ -4,13 +4,19 @@ Procedures:
 
 	Exemplo: call insertTo("Usuario","nome,email,cpf",' "Bruno Serra","bruno[@]uptune.com.br","2345678901" ');
 	
+
+
 - updateTo(nome_tabela,campo_com_valor_a_alterar,campo_e_valor_atual)
 
 	Exemplo: call updateTo("Usuario",' nome="Nilo Junior" ',' nome="Bruno Serra" ');
 
+
+
 - selectFrom(nome_tabela,campos_a_selecionar,condicoes)
 
 	Exemplo: call selectFrom("Usuario",' nome,cpf ',' nome="Bruno Serra Barboza" ');
+
+
 
 -  ingressosDisponiveis('') ou  ingressosDisponiveis('nome_evento')
 
@@ -18,11 +24,15 @@ Procedures:
 
 	Exemplo: call ingressosDisponiveis("Lollapalooza");
 
+
+
 -  ingressosReservados()
 
 	Lista de usuarios que reservaram ingressos.
 
 	Exemplo: call ingressosReservados();
+
+
 
 -  listUsers('') ou listUsers('parte_nome_usuario')
 
@@ -30,11 +40,15 @@ Procedures:
 
 	Exemplo: call listUsers('serra');
 
+
+
 -  buysPerUser('') ou buysPerUser('nome_usuario')
 
 	Lista todos os usuarios e quantas vezes já compraram ou usuario específico.
 
 	Exemplo: call buysPerUser('Bruno Serra');
+
+
 
 -  lucrePerEvent('') ou lucrePerEvent('nome_evento')
 
@@ -42,11 +56,15 @@ Procedures:
 
 	Exemplo: call lucrePerEvent('Lollapalooza');
 
+
+
 -  membersPerEvent('') ou membersPerEvent('nome_evento')
 
 	Lista quantos integrantes cada evento tem ou lista quem sao de terminado evento.
 
 	Exemplo: call membersPerEvent('Lollapalooza');
+
+
 
 -  toReceive()
 
@@ -54,11 +72,15 @@ Procedures:
 
 	Exemplo: call membersPerEvent('Lollapalooza');
 
+
+
 -  toReceiveFromUser('nome_usuario')
 
 	Mostra total que falta receber das parcelas em aberto de determinado usuario
 
 	Exemplo: call toReceiveFromUser('Bruno Serra');
+
+
 
 -  inadimplente()
 
@@ -66,11 +88,14 @@ Procedures:
 
 	Exemplo: call toReceiveFromUser('Bruno Serra');
 
+
+
 -  eventsPerPlace('nome_ambiente')
 
 	Lista os eventos que ocorreram no ambiente dado
 
 	Exemplo: call toReceiveFromUser('Morumbi');
+
 
 
 Functions:
@@ -81,11 +106,14 @@ Functions:
 
 	Exemplo: buyPass("Bruno Serra Barboza", "Lollapalooza", "Pista", 1, "A vista", 1);
 
+
+
 - newEvent(nome_evento, nome_local, descricao, data_evento, tipo_evento, integrantes_evento) : retorna varchar
 
 	Cria novo evento atualizando todos os dados envoldidos no sistema. Campo de integrantes deve ser preenchido separando-os por vírgula.
 
 	Exemplo: newEvent("Planeta Terra 2015", "Jockey Sao Paulo", "O maior evento hipster do brasil", "25/02/2013", "Festival", "Maria, Paula, Marcos, Bruno Serra");
+
 
 
 Events:
