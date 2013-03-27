@@ -703,3 +703,117 @@ DELIMITER ;
 -- call inadimplente()
 
 
+DELIMITER //
+CREATE function registerPass(_nome varchar(255), _setor varchar(255), _valor FLOAT, _qtd INT) returns varchar(255)
+BEGIN
+
+	declare i INT DEFAULT 0;
+	 
+	if(((_nome = '') or (_nome = null)) or ((_setor = '') or (_setor = null)) or ((_valor = '') or (_valor = null) or (_valor <0 )) or ((_qtd = '') or (_qtd = null) or (_qtd<=0))) then
+		return 'Por Favor, preencha os valores corretamente.';
+		end if;
+		
+	SET @evento_id = 0;
+	select idEvento, idAmbiente, nome into @evento_id, @ambiente_id, @e_nome from Evento where nome = _nome;
+	if(@evento_id=0) then
+		return 'Evento nao existe.';
+	end if;
+	
+	
+	SET @setor_id = 0;
+	select idSetor into @setor_id from Setor where nome = _setor;
+	if(@setor_id=0) then
+		return 'Setor Nao existe';
+	end if;
+	
+	SET @check = 0;
+	select idSetor, capacidade into @check, @capacidade from Ambiente_has_setor where (idSetor = @setor_id) and (idAmbiente = @ambiente_id);
+	if(@check=0) then
+		return 'Ambiente nao suporta esse setor';
+	end if;
+	
+	SET @ajuste = 0;
+	select count(*) into @ajuste from Ingresso where (idEvento = @evento_id) and (idSetor = @setor_id);
+	
+	if(@ajuste >0)then
+		SET _qtd = _qtd - @ajuste;
+	end if;
+	
+	if(_qtd>@capacidade)then
+		return concat('Voce só pode cadastrar ',@check,' ingressos para esse setor.');	
+	end if;
+
+	
+	while (i < _qtd) do
+		insert into Ingresso (idEvento, valor, idSetor, `status`) values (@evento_id, _valor, @setor_id,0);
+		SET i = i +1;
+	end while;
+	
+	if(_qtd != 0)then
+		return concat(_qtd,' ingressos cadastrados ao evento ',@e_nome);
+	else
+		return 'Capacidade do setor atingida. Escolha outro setor.';
+	end if;
+
+END//
+DELIMITER ;
+
+-- call inadimplente()
+
+-- SET @teste = registerPass("Lollapalooza", 'pista', 300, 10) ;
+-- select @teste;
+DELIMITER //
+create function buyReserva(_codigo INT, _fp varchar(255), _parcelas INT) returns varchar(255)
+begin
+DECLARE valor_parcela INT;
+declare contador INT default 0;
+		if(_codigo = '' or _fp = '' or _parcelas = null or _parcelas <=0)then
+			return 'Preencha os campos corretamente';
+		end if;
+		
+		SET @compra_id = 0;
+		select idCompra, total, idUsuario into @compra_id, @valor, @usuario_id from Compra where (idCompra = _codigo) and (tipo=1);
+		
+		select nome into @nome from Usuario where idUsuario = @usuario_id;
+		
+		if(@compra_id =0)then
+			return 'Reservar expirou ou não existe';
+		end if;
+
+			SET @fp_id  = 0;
+	SET @vezes = 1;
+
+	SELECT fp.idForma_Pagamento, fp.vezes into @fp_id, @vezes from Forma_Pagamento fp where LOWER(fp.nome) = _fp;
+	
+	IF(@fp_id=0) then return 'Forma de pagamento inválida.'; end if;
+	
+	if(((_parcelas<0) or (_parcelas>1)) and (_fp = 'a vista')) then 
+		return 'Por favor, verifique a forma de pagamento !'; 
+	end if;
+	
+	if((_parcelas=0) or (_parcelas >@vezes)) then 
+		RETURN CONCAT('Quantidade de parcelas inválida. Só é possível dividir em ',@vezes,'x no ', _fp, '.'); 
+	END IF;
+	
+	SET valor_parcela = @valor / @vezes;
+	
+	UPDATE Compra set tipo=0 where idCompra = @compra_id;
+  					
+  	IF (_fp = "a vista") then
+  		insert into Pagamento (idForma_Pagamento, idCompra, `valor`, vencimento, `status`) values (@fp_id,@compra_id, valor_parcela, CURRENT_DATE(),1);
+  	ELSE
+  						while contador < @vezes DO
+  							insert into Pagamento (idForma_Pagamento, idCompra, `valor`, vencimento) values (@fp_id,@compra_id, valor_parcela, date_add(CURRENT_DATE(), interval contador month));
+  							SET contador = contador + 1;
+  						END WHILE ;
+  	end if;
+  					
+	return concat('Sucesso! Comprador: ',@nome,'.\nForma de Pagamento: ', _fp, '.\nParcelas: ',_parcelas);
+
+
+end//
+DELIMITER ;
+
+SET @teste = buyReserva(16, 'cartao', 2);
+select @teste;
+
