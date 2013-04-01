@@ -843,3 +843,30 @@ begin
 end//
 
 delimiter ;
+
+delimiter //
+create function setor_am(_ambiente varchar(255), _setor varchar(255)) returns varchar(255)
+begin
+
+	SET @compra_i = 0;
+		select `idAmbiente` into @compra_i from Ambiente where (nome = _ambiente);
+
+		if(@compra_i =0)then
+			return 'Ambiente não existe';
+		end if;
+		
+		
+			SET @compra_id = 0;
+		select `idSetor` into @compra_id from Setor where (nome = _setor);
+
+		if(@compra_id =0)then
+			return 'Setor não existe';
+		end if;
+
+		insert into Ambiente_has_setor (idAmbiente, idSetor) values (@compra_i, @compra_id);
+		return 'Cadastrado';
+		
+	
+end//
+
+delimiter ;
