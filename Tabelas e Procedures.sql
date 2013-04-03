@@ -56,7 +56,11 @@ DROP TABLE IF EXISTS `Ambiente_has_setor`;
 CREATE TABLE `Ambiente_has_setor` (
   `idAmbiente` int(11) DEFAULT NULL,
   `idSetor` int(11) DEFAULT NULL,
-  `capacidade` int(11) DEFAULT NULL
+  `capacidade` int(11) DEFAULT NULL,
+  KEY `idAmbiente` (`idAmbiente`),
+  KEY `idSetor` (`idSetor`),
+  CONSTRAINT `Ambiente_has_setor_ibfk_2` FOREIGN KEY (`idSetor`) REFERENCES `Setor` (`idSetor`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `Ambiente_has_setor_ibfk_1` FOREIGN KEY (`idAmbiente`) REFERENCES `Ambiente` (`idAmbiente`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 LOCK TABLES `Ambiente_has_setor` WRITE;
