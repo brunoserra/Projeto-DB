@@ -34,7 +34,7 @@ CREATE TABLE `Ambiente` (
   `capacidade` int(11) DEFAULT NULL,
   PRIMARY KEY (`idAmbiente`),
   KEY `fk_Ambiente_Tipo_Ambiente1` (`idTipo_Ambiente`),
-  CONSTRAINT `fk_Ambiente_Tipo_Ambiente1` FOREIGN KEY (`idTipo_Ambiente`) REFERENCES `Tipo_Ambiente` (`idTipo_Ambiente`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_Ambiente_Tipo_Ambiente1` FOREIGN KEY (`idTipo_Ambiente`) REFERENCES `Tipo_Ambiente` (`idTipo_Ambiente`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1;
 
 LOCK TABLES `Ambiente` WRITE;
@@ -106,7 +106,7 @@ CREATE TABLE `Compra` (
   `tipo` int(1) DEFAULT '0' COMMENT '0=compra 1= reserva',
   PRIMARY KEY (`idCompra`),
   KEY `fk_Compra_Usuario` (`idUsuario`),
-  CONSTRAINT `fk_Compra_Usuario` FOREIGN KEY (`idUsuario`) REFERENCES `Usuario` (`idUsuario`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_Compra_Usuario` FOREIGN KEY (`idUsuario`) REFERENCES `Usuario` (`idUsuario`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=latin1;
 
 LOCK TABLES `Compra` WRITE;
@@ -167,7 +167,7 @@ CREATE TABLE `Evento` (
   `data` date DEFAULT NULL,
   PRIMARY KEY (`idEvento`),
   KEY `fk_Evento_categoria1` (`idcategoria`),
-  CONSTRAINT `fk_Evento_categoria1` FOREIGN KEY (`idcategoria`) REFERENCES `categoria` (`idcategoria`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_Evento_categoria1` FOREIGN KEY (`idcategoria`) REFERENCES `categoria` (`idcategoria`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=latin1;
 
 LOCK TABLES `Evento` WRITE;
@@ -221,7 +221,7 @@ CREATE TABLE `Ingresso` (
   `status` int(1) DEFAULT NULL,
   PRIMARY KEY (`idIngresso`,`idEvento`),
   KEY `fk_Ingresso_Evento1` (`idEvento`),
-  CONSTRAINT `fk_Ingresso_Evento1` FOREIGN KEY (`idEvento`) REFERENCES `Evento` (`idEvento`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_Ingresso_Evento1` FOREIGN KEY (`idEvento`) REFERENCES `Evento` (`idEvento`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=latin1;
 
 LOCK TABLES `Ingresso` WRITE;
@@ -284,8 +284,8 @@ CREATE TABLE `Integrantes_has_Evento` (
   PRIMARY KEY (`Integrantes_idIntegrantes`,`Evento_idEvento`),
   KEY `fk_Integrantes_has_Evento_Evento1` (`Evento_idEvento`),
   KEY `fk_Integrantes_has_Evento_Integrantes1` (`Integrantes_idIntegrantes`),
-  CONSTRAINT `fk_Integrantes_has_Evento_Evento1` FOREIGN KEY (`Evento_idEvento`) REFERENCES `Evento` (`idEvento`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_Integrantes_has_Evento_Integrantes1` FOREIGN KEY (`Integrantes_idIntegrantes`) REFERENCES `Integrantes` (`idIntegrantes`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_Integrantes_has_Evento_Evento1` FOREIGN KEY (`Evento_idEvento`) REFERENCES `Evento` (`idEvento`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_Integrantes_has_Evento_Integrantes1` FOREIGN KEY (`Integrantes_idIntegrantes`) REFERENCES `Integrantes` (`idIntegrantes`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 LOCK TABLES `Integrantes_has_Evento` WRITE;
@@ -320,7 +320,7 @@ CREATE TABLE `Pagamento` (
   `status` int(1) DEFAULT '0' COMMENT '0= em aberto 1 = pago',
   PRIMARY KEY (`idPagamento`,`idForma_Pagamento`),
   KEY `fk_Pagamento_Forma_Pagamento1` (`idForma_Pagamento`),
-  CONSTRAINT `fk_Pagamento_Forma_Pagamento1` FOREIGN KEY (`idForma_Pagamento`) REFERENCES `Forma_Pagamento` (`idForma_Pagamento`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_Pagamento_Forma_Pagamento1` FOREIGN KEY (`idForma_Pagamento`) REFERENCES `Forma_Pagamento` (`idForma_Pagamento`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=latin1;
 
 LOCK TABLES `Pagamento` WRITE;
@@ -948,32 +948,7 @@ DELIMITER ;
 SET @teste = buyReserva(16, 'cartao', 2);
 select @teste;
 
-delimiter //
-create function setor_am(_ambiente varchar(255), _setor varchar(255)) returns varchar(255)
-begin
 
-	SET @compra_i = 0;
-		select `idAmbiente` into @compra_i from Ambiente where (nome = _ambiente);
-
-		if(@compra_i =0)then
-			return 'Ambiente não existe';
-		end if;
-		
-		
-			SET @compra_id = 0;
-		select `idSetor` into @compra_id from Setor where (nome = _setor);
-
-		if(@compra_id =0)then
-			return 'Setor não existe';
-		end if;
-
-		insert into Ambiente_has_setor (idAmbiente, idSetor) values (@compra_i, @compra_id);
-		return 'Cadastrado';
-		
-	
-end//
-
-delimiter ;
 
 delimiter //
 create function setor_am(_ambiente varchar(255), _setor varchar(255)) returns varchar(255)
@@ -985,19 +960,28 @@ begin
 		if(@compra_i =0)then
 			return 'Ambiente não existe';
 		end if;
-		
-		
+
+
 			SET @compra_id = 0;
 		select `idSetor` into @compra_id from Setor where (nome = _setor);
 
 		if(@compra_id =0)then
 			return 'Setor não existe';
 		end if;
+		
+		
+				SET @check = 0;
+		select `idSetor` into @check from Ambiente_has_setor where (idSetor = @compra_id) and (idAmbiente = @compra_i);
+
+		if(@check =0)then
+			return 'Setor já cadastrado no ambiente';
+		end if;
+		
+		
 
 		insert into Ambiente_has_setor (idAmbiente, idSetor) values (@compra_i, @compra_id);
-		return 'Cadastrado';
-		
-	
-end//
+		return concat(_setor,' foi cadastrado ao ambiente ', _ambiente,' com sucesso !');
 
+
+end//
 delimiter ;
